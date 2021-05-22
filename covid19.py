@@ -3,6 +3,8 @@
 from urllib.request import urlopen
 import dash_html_components as html
 import dash_core_components as dcc
+from dash_html_components.Br import Br
+from dash_html_components.Link import Link
 import plotly.graph_objects as go
 from configparser import RawConfigParser
 import statistics
@@ -19,6 +21,7 @@ parser.read(CONFIG_FILE)
 BIND_IP                 = parser['network']['bind_ip']
 BIND_PORT               = parser['network']['bind_port']
 RAW_JSON_DATA_URL       = parser['network']['data_url']
+SOURCE_CODE_URL         = parser['network']['source_code_url']
 
 DAYS_BACK               = int(parser['general']['days_back'])
 NORM_POPULATION         = int(parser['general']['norm_population'])
@@ -326,6 +329,26 @@ def create_charts():
             dcc.Graph(
                 figure=show_line_chart()
             )
+        ]),
+        html.Div(style={
+            'width'              : '100%',
+            'text-align'         : 'center',
+            '-webkit-box-shadow' : '0px 0px 25px 1px rgba(0,0,0,0.15)',
+            '-moz-box-shadow'    : '0px 0px 25px 1px rgba(0,0,0,0.15)',
+            'box-shadow'         : '0px 0px 25px 1px rgba(0,0,0,0.15)', 
+            'margin-top'         : '30px',
+            'margin-bottom'      : '50px',
+        }, children=[
+            html.A('Navigate to source code', href=SOURCE_CODE_URL, target='_blank', style={
+			    'text-align'         : 'center',
+			    'color'              : 'rgb(55, 83, 109)',
+                'margin-bottom'      : '10px'
+            }),
+            html.Br(),
+            html.A('Navigate to raw JSON data', href=RAW_JSON_DATA_URL, target='_blank', style={
+			    'text-align'         : 'center',
+			    'color'              : 'rgb(55, 83, 109)'
+            })
         ])
     ])
     app.run_server(debug=True, host=BIND_IP, port=BIND_PORT)
