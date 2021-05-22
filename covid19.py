@@ -31,11 +31,6 @@ DEFAULT_COLOR           = parser['general']['default_color']
 DEFAULT_COUNTRY         = parser['countries']['default']
 COUNTRIES_IN_LINE_CHART = parser['countries']['list'].split(',')
 
-MAIN_TITLE              = parser['titles']['mail_title']
-DAILY_CASES_TITLE       = parser['titles']['daily_cases']
-CUMULATIVE_CASES_TITLE  = parser['titles']['cumulative_cases']
-PROGRESS_TITLE          = parser['titles']['progess_of_individual_countries']
-
 time_now = datetime.now()
 dt_string = time_now.strftime("%d/%m/%Y %H:%M")
 countries = {}
@@ -52,17 +47,24 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 class Country:
-    def __init__(self, shortcut, name, population, daily_cases, dates):
+    def __init__(self, shortcut, name, population, daily_cases, vaccination, dates):
         self.shortcut    = shortcut
         self.name        = name
         self.population  = population
-
         self.daily_cases = daily_cases
         self.dates       = dates
+        self.vaccination = self.normalizeVaccination(vaccination, population)
         self.cumulative  = self.get_cumulative(days=CUMULATIVE_DAYS, dates=self.dates, daily_cases=self.daily_cases, population=self.population)
         self.progress    = self.get_progress(self.cumulative, days=CUMULATIVE_DAYS)
-
         self.cumulative_sum = sum(self.cumulative)
+
+    def normalizeVaccination(self, data, population):
+        vaccination = []
+        prev_val = 0
+        for val in data:
+            prev_val = prev_val + (val * NORM_POPULATION) / population
+            vaccination.append(prev_val)
+        return vaccination
     
     def get_cumulative(self, days, dates, daily_cases, population):
         cumulative = []
@@ -110,6 +112,8 @@ for country in loaded_json:
 
     daily_cases = []
     dates = []
+    vaccination = []
+
     for record in loaded_json[country]['data']:
         if 'new_cases' in record:
             daily_cases.append(record['new_cases'])
@@ -118,11 +122,17 @@ for country in loaded_json:
         date_parts = record['date'].split('-')
         dates.append(date_parts[2] + '.' + date_parts[1] + '.')
 
+        if 'new_vaccinations' in record:
+            vaccination.append(record['new_vaccinations'])
+        else:
+            vaccination.append(0)
+
     try:
         country_ins = Country(shortcut=country,
                           name=full_name,
                           population=population,
                           daily_cases=daily_cases,
+                          vaccination=vaccination,
                           dates=dates)
     except:
         print(bcolors.FAIL + "[-] " + bcolors.ENDC + "error occurred while processing '{0}'".format(full_name))
@@ -164,7 +174,7 @@ def show_daily_cases_of_country(shortcut):
     
     return show_bar_chart(x_data=countries[shortcut].dates[-DAYS_BACK:],
                           y_data=countries[shortcut].daily_cases[-DAYS_BACK:],
-                          title=DAILY_CASES_TITLE + ' ' + countries[shortcut].name,
+                          title='Daily New Cases - ' + countries[shortcut].name,
                           colors=colors)
 
 def show_current_cumulative_number():
@@ -200,6 +210,23 @@ def show_line_chart():
     for country in COUNTRIES_IN_LINE_CHART:
         x_data = countries[country].dates[-DAYS_BACK:]
         y_data = countries[country].cumulative[-DAYS_BACK:]
+        name   = countries[country].name
+
+        fig.add_trace(go.Scatter(x=x_data, y=y_data,
+                                 mode='lines+markers',
+                                 name=name))
+    return fig
+
+def show_vaccination_line_chart():
+    fig = go.Figure()
+
+    fig.update_layout(
+        title = 'Number of Vaccinations Carried Out per ' + str(NORM_POPULATION),
+    )
+
+    for country in COUNTRIES_IN_LINE_CHART:
+        x_data = countries[country].dates[-DAYS_BACK:]
+        y_data = countries[country].vaccination[-DAYS_BACK:]
         name   = countries[country].name
 
         fig.add_trace(go.Scatter(x=x_data, y=y_data,
@@ -259,7 +286,7 @@ def create_charts():
         'width'                  : '80%',
         'margin'                 : 'auto'
     }, children=[
-        html.H1(children=MAIN_TITLE, style={
+        html.H1(children='Covid19-related data', style={
 			'text-align'         : 'center',
 			'color'              : 'rgb(55, 83, 109)'
         }),
@@ -328,6 +355,18 @@ def create_charts():
         }, children=[
             dcc.Graph(
                 figure=show_line_chart()
+            )
+        ]),
+        html.Div(style={
+            'width'              : '100%',
+            '-webkit-box-shadow' : '0px 0px 25px 1px rgba(0,0,0,0.15)',
+            '-moz-box-shadow'    : '0px 0px 25px 1px rgba(0,0,0,0.15)',
+            'box-shadow'         : '0px 0px 25px 1px rgba(0,0,0,0.15)', 
+            'margin-top'         : '50px',
+            'margin-bottom'      : '50px'
+        }, children=[
+            dcc.Graph(
+                figure=show_vaccination_line_chart()
             )
         ]),
         html.Div(style={
