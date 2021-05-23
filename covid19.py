@@ -221,7 +221,7 @@ def show_vaccination_line_chart():
     fig = go.Figure()
 
     fig.update_layout(
-        title = 'Number of Vaccinations Carried Out per ' + str(NORM_POPULATION),
+        title = 'Total Number of Vaccinations Carried Out per ' + str(NORM_POPULATION),
     )
 
     for country in COUNTRIES_IN_LINE_CHART:
@@ -277,6 +277,29 @@ def show_total_sum():
     return show_bar_chart(x_data=countries_names,
                           y_data=cumulative_sum,
                           title = 'Total Sum of Cumulative Number of Cases per ' + str(NORM_POPULATION),
+                          colors=colors)
+
+def show_vaccination_bar_chart():
+    data = {}
+    for key in COUNTRIES_IN_LINE_CHART:
+        data[countries[key].name] = countries[key].vaccination[-1]
+
+    countries_names = []
+    last_cumulative_num = []
+    colors = []
+
+    for w in sorted(data, key=data.get, reverse=True):
+        countries_names.append(w)
+        last_cumulative_num.append(round(data[w], 2))
+
+        if w in predefined_colors:
+            colors.append(predefined_colors[w])
+        else:
+            colors.append(DEFAULT_COLOR)
+    
+    return show_bar_chart(x_data=countries_names,
+                          y_data=last_cumulative_num,
+                          title = 'Total Number of Vaccinations Carried Out per ' + str(NORM_POPULATION),
                           colors=colors)
 
 app = dash.Dash(__name__)
@@ -367,6 +390,18 @@ def create_charts():
         }, children=[
             dcc.Graph(
                 figure=show_vaccination_line_chart()
+            )
+        ]),
+        html.Div(style={
+            'width'              : '100%',
+            '-webkit-box-shadow' : '0px 0px 25px 1px rgba(0,0,0,0.15)',
+            '-moz-box-shadow'    : '0px 0px 25px 1px rgba(0,0,0,0.15)',
+            'box-shadow'         : '0px 0px 25px 1px rgba(0,0,0,0.15)', 
+            'margin-top'         : '50px',
+            'margin-bottom'      : '50px'
+        }, children=[
+            dcc.Graph(
+                figure=show_vaccination_bar_chart()
             )
         ]),
         html.Div(style={
